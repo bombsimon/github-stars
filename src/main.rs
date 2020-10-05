@@ -1,3 +1,5 @@
+use prettytable::format::{consts, Alignment};
+use prettytable::{cell, row, Cell, Row, Table};
 use serde::Deserialize;
 
 #[derive(Deserialize, Debug)]
@@ -17,8 +19,6 @@ struct Repository {
 struct RepositoryResult {
     repositories: Vec<Repository>,
     total_stars: usize,
-    longest_repo_name: usize,
-    longest_start_count: usize,
 }
 
 #[tokio::main]
@@ -60,18 +60,26 @@ async fn main() -> Result<(), &'static str> {
         }
     };
 
+    let mut table = Table::new();
+    table.set_format(*consts::FORMAT_NO_BORDER_LINE_SEPARATOR);
+    table.set_titles(row!["Count", "Name", "Description"]);
+
     for repo in result.repositories {
-        println!(
-            "⭐️ {:star_width$} | {:name_width$} | {}",
-            repo.stargazers_count,
+        table.add_row(row![
+            format!("⭐️ {}", repo.stargazers_count),
             repo.name,
             repo.description.unwrap_or(String::from("-")),
-            name_width = result.longest_repo_name,
-            star_width = result.longest_start_count,
-        );
+        ]);
     }
 
-    println!("\n Total stars: {}", result.total_stars);
+    table.add_row(Row::new(vec![]));
+    table.add_row(Row::new(vec![Cell::new_align(
+        format!("Total stars: {}", result.total_stars).as_str(),
+        Alignment::RIGHT,
+    )
+    .with_hspan(3)]));
+
+    table.printstd();
 
     Ok(())
 }
@@ -97,8 +105,6 @@ async fn get_user_repos(
 
     let mut repositories: Vec<Repository> = Vec::new();
     let mut total_stars = 0usize;
-    let mut longest_repo_name = 0;
-    let mut longest_start_count = 0;
 
     for x in (0..total_pages).rev() {
         let repo_request_url = format!(
@@ -118,17 +124,6 @@ async fn get_user_repos(
                 continue;
             }
 
-            let repo_name_length = r.name.len();
-            let repo_star_count_as_str_length = r.stargazers_count.to_string().len();
-
-            if repo_name_length > longest_repo_name {
-                longest_repo_name = repo_name_length;
-            }
-
-            if repo_star_count_as_str_length > longest_start_count {
-                longest_start_count = repo_star_count_as_str_length;
-            }
-
             repositories.push(r)
         }
     }
@@ -138,7 +133,5 @@ async fn get_user_repos(
     Ok(RepositoryResult {
         repositories,
         total_stars,
-        longest_repo_name,
-        longest_start_count,
     })
 }
