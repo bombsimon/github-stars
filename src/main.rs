@@ -4,7 +4,9 @@ use serde::Deserialize;
 
 #[derive(Deserialize, Debug)]
 struct User {
+    #[allow(unused)]
     login: String,
+    #[allow(unused)]
     id: u32,
     public_repos: u32,
 }
@@ -24,20 +26,20 @@ struct RepositoryResult {
 #[tokio::main]
 async fn main() -> Result<(), &'static str> {
     let matches = clap::App::new("GitHub Stars")
-        .version("0.1")
+        .version("0.2.0")
         .author("Simon Sawert <simon@sawert.se>")
         .about("Get stars from GitHub user repositories")
         .arg(
-            clap::Arg::with_name("username")
-                .about("GitHub username")
+            clap::Arg::new("username")
+                .help("GitHub username")
                 .required(true)
                 .index(1),
         )
         .arg(
-            clap::Arg::with_name("threshold")
+            clap::Arg::new("threshold")
                 .short('t')
                 .long("threshold")
-                .about("Minimum stars to show")
+                .help("Minimum stars to show")
                 .takes_value(true)
                 .required(false)
                 .default_value("1"),
@@ -68,7 +70,7 @@ async fn main() -> Result<(), &'static str> {
         table.add_row(row![
             format!("⭐️ {}", repo.stargazers_count),
             repo.name,
-            repo.description.unwrap_or(String::from("-")),
+            repo.description.unwrap_or_else(|| String::from("-")),
         ]);
     }
 
