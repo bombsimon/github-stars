@@ -1,5 +1,6 @@
+use clap::Parser;
 use prettytable::format::{consts, Alignment};
-use prettytable::{cell, row, Cell, Row, Table};
+use prettytable::{row, Cell, Row, Table};
 use serde::Deserialize;
 
 #[derive(Deserialize, Debug)]
@@ -23,37 +24,23 @@ struct RepositoryResult {
     total_stars: usize,
 }
 
+/// Get stars from GitHub user repositories
+#[derive(Parser, Debug)]
+#[command(author, version, about, long_about = None)]
+struct Args {
+    /// GitHub username
+    #[arg(required = true)]
+    username: String,
+    /// Minimum stars required to show
+    #[arg(short, long, default_value_t = 1)]
+    threshold: u32,
+}
+
 #[tokio::main]
 async fn main() -> Result<(), &'static str> {
-    let matches = clap::App::new("GitHub Stars")
-        .version("0.2.0")
-        .author("Simon Sawert <simon@sawert.se>")
-        .about("Get stars from GitHub user repositories")
-        .arg(
-            clap::Arg::new("username")
-                .help("GitHub username")
-                .required(true)
-                .index(1),
-        )
-        .arg(
-            clap::Arg::new("threshold")
-                .short('t')
-                .long("threshold")
-                .help("Minimum stars to show")
-                .takes_value(true)
-                .required(false)
-                .default_value("1"),
-        )
-        .get_matches();
+    let args = Args::parse();
 
-    let username = matches.value_of("username").unwrap();
-    let star_threashold = matches
-        .value_of("threshold")
-        .unwrap_or("1")
-        .parse::<u32>()
-        .unwrap_or(1);
-
-    let result = match get_user_repos(username.to_string(), star_threashold).await {
+    let result = match get_user_repos(args.username, args.threshold).await {
         Ok(v) => v,
         Err(e) => {
             println!("error fetching stars: {}", e);
